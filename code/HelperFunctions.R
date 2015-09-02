@@ -61,10 +61,6 @@ getmultiTable<-function(test=NULL,roundFact=2)
 }
 
 
-
-
-
-
 printPretty<-function(pTable)
 {
   #prints a regression table all pretty like

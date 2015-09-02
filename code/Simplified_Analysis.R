@@ -1,5 +1,3 @@
-#setwd("~/Documents/projects/TB_Bedmap/")
-
 library(ggplot2)
 library(reshape2)
 library(scales)
@@ -48,13 +46,12 @@ convertORtoRR<-function(OR = NULL,p = 0.1)
 
 roomLayout<-read.csv(file="./Data/Room_Coordinates_2008.csv",header=T)
 bedCoord<-read.csv(file="./Data/Bed_Coordinates_2008.csv",header=T)
-dat<-read.csv(file="./Data/Data_for_analysis_deidentified_R_ready_3.csv",header=T,stringsAsFactors=F)
+dat<-read.csv(file="./Data/Data_for_analysis_deidentified_R_ready_sanitized.csv",header=T,stringsAsFactors=F)
 dat[dat$KEY==1,]$CaseStatus_shrt<-"Index case"
 
 #wrangle the data  a bit
-dat$Bed<-dat$value
-dat$DateOfVisit<-as.Date(gsub("X","",dat$variable),format="%m.%d.%y")
-
+#dat$DateOfVisit<-as.Date(gsub("X","",dat$variable),format="%m.%d.%y")
+dat$DateOfVisit<-factor(dat$DateOfVisit,levels=c("V1-D1","V1-D7","V1-D8","V1-D9","V1-D10","V1-D11","V1-D12","V2-D1","V2-D6","V2-D7","V2-D10","V2-D11"))
 #Sort out client outcome levels
 dat$CaseStatus_shrt<-factor(dat$CaseStatus_shrt,levels=c("Index case","Active","Latent","Uninfected","PriorInfection","Unknown-TSTnotRead","Unknown-noDB","Unknown-noScreen"))
 dat<-dat[!is.na(dat$Bed),]
@@ -83,7 +80,7 @@ for(i in 1:nrow(dat))
 {
   #compare find where the index case was on the day of
   #that particular client was in the shelter
-  idx<-which(idxData$DateOfVisit==dat[i,]$DateOfVisit)
+  idx<-which(as.character(idxData$DateOfVisit)==as.character(dat[i,]$DateOfVisit))
   
   #
   if (!(is.na(dat[i,]$X) || is.na(dat[i,]$Y)))
@@ -183,6 +180,7 @@ dat$Visits<-factor(dat$Visits,levels=c("Both","First only","Second only"))
 #     VISUALIZE SOME CLIENT MOVEMENT
 #######################################
 
+# ~~~~ THIS PART BELOW WAS NOT USED IN THE MANUSCRIPT ~~~~ #
 #According to the date determine the following:
 # 1) How many new clients entered the shelter
 # 2) How many clients were not yet in the shelter
@@ -291,10 +289,11 @@ movement<-ggplot(data=shelterMove,aes(x=Date,y=variable))+
   theme_bw()+
   xlab("")+
   ylab("Client Movement Status")+
-  theme(axis.text.x=element_text(angle=90))
+  theme(axis.text.x=element_text(angle=90))+
 
 ggsave(movement,file="Client_Movement_Status_by_Date.pdf")
 
+# ~~~~ THIS PART ABOVE WAS NOT USED IN THE MANUSCRIPT ~~~~ #
 
 
 
@@ -321,16 +320,17 @@ moveByRoom <- ggplot(data=dat,aes(x=X,y=Y)) +
 moveByRoom <- moveByRoom + theme(legend.text=element_text(size=12,family="Helvetica",face="plain"),
                    legend.title=element_text(size=12,face="plain",family="Helvetica"),
                    axis.text = element_text(family="Helvetica",size=12),
-                   axis.title=element_text(family="Helvetica",size=12))
+                   axis.title=element_text(family="Helvetica",size=12))+
+  ggtitle("Client movement around the room by TB status and over time")
 
-ggsave(moveByRoom,file="./revisions/Rev 1.3//Client_Movement_By_Room.jpeg",units="in",height=4,width=7,dpi=300)
+ggsave(moveByRoom,file="./figures/Client_Movement_By_Room.jpeg",units="in",height=4,width=7,dpi=300)
 
 
 
 #b. Visualizing the movement of the index case according to bed
 pallete = c("#000000","#d73027","#fc8d59","#4575b4","#e9a3c9","#fee090","#fee090","#fee090")
 
-moveByBed <- ggplot(data= dat,aes(x=as.character(DateOfVisit),y=Bed,group=KEY)) +
+moveByBed <- ggplot(data= dat,aes(x=DateOfVisit,y=Bed,group=KEY)) +
   geom_line(aes(colour = CaseStatus_shrt,alpha=CaseStatus_shrt))+
   geom_point(aes(colour = CaseStatus_shrt,size=CaseStatus_shrt,alpha=CaseStatus_shrt),pch=21,fill= "white")+
   scale_colour_manual(values=pallete,name="Client Outcome") +
@@ -339,9 +339,10 @@ moveByBed <- ggplot(data= dat,aes(x=as.character(DateOfVisit),y=Bed,group=KEY)) 
   theme_bw()+
   ylab("Bed Number")+
   xlab("Date of Visit")+
-  theme(axis.text.x= element_text(angle = 90),axis.text=element_text(size=14),axis.title=element_text(face="bold",size=16))
+  theme(axis.text.x= element_text(angle = 90),axis.text=element_text(size=14),axis.title=element_text(face="bold",size=16))+
+  ggtitle("Client movement according to bed number and TB status and over time")
   #theme(axis.text.x = element_blank())
-ggsave(moveByBed,file="./figures/Client_Movement_By_BedNum.svg",units="cm",height=14,width=26.5)
+ggsave(moveByBed,file="./figures/Client_Movement_By_BedNum.jpeg",units="cm",height=14,width=26.5,dpi=300)
 
 
 
@@ -374,14 +375,15 @@ datEval.Uni<-datEval[match(unique(datEval$KEY),datEval$KEY),]
 
 #c. Visualizing movement according to proximity from the index case
 
-moveByDist <-ggplot(data= datEval,aes(x=as.factor(DateOfVisit),y=distFromIndex,group=KEY)) +
+moveByDist <-ggplot(data= datEval,aes(x=DateOfVisit,y=distFromIndex,group=KEY)) +
   geom_line(aes(colour = CaseStatus_shrt,alpha=CaseStatus_shrt))+
   geom_point(aes(colour = CaseStatus_shrt,fill=CaseStatus_shrt,alpha=CaseStatus_shrt),pch=21)+
   scale_colour_manual(values=pallete[2:9],name="Client outcome") +
   scale_fill_manual(values=pallete[2:9],name="Client outcome")+
   scale_size_manual(values = c(3,2,2,2,1,1,1,1),name= "Client outcome")+
   scale_alpha_manual(values=c(1.0,0.9,0.9,0.9,0.5,0.5,0.5,0.5),name= "Client outcome")+
-  scale_x_discrete(labels=c("V1-D1","V1-D6","V1-D7","V1-D8","V1-D9","V1-D10","V1-D11","V2-D1","V2-D5","V2-D6","V2-D9","V2-D10"))+
+  #The terrible choice on manual edit below led to off-by one error in the printed version of this figure
+  #scale_x_discrete(labels=c("V1-D1","V1-D6","V1-D7","V1-D8","V1-D9","V1-D10","V1-D11","V2-D1","V2-D5","V2-D6","V2-D9","V2-D10"))+
   #scale_x_date(labels = date_format("%b-%d-%y"),minor_breaks=NULL,breaks=unique(dat$DateOfVisit))+
   coord_polar()+
   theme_bw()+
@@ -391,7 +393,8 @@ moveByDist <-ggplot(data= datEval,aes(x=as.factor(DateOfVisit),y=distFromIndex,g
         legend.text=element_text(size=12),
         legend.title=element_text(size=14,face="plain"),
         axis.text.x = element_text(face="bold",size=14,colour = c(rep("black",7),rep("azure4",5))),
-        axis.ticks.y=element_blank(),panel.border=element_rect(fill=NA,colour=NA))
+        axis.ticks.y=element_blank(),panel.border=element_rect(fill=NA,colour=NA))+
+  ggtitle("Proximity of clients to index case (center of circle) by TB status over time")
   
 
 moveByDist<-moveByDist + theme(legend.text=element_text(size=12,family="Helvetica",face="plain"),
@@ -399,10 +402,7 @@ moveByDist<-moveByDist + theme(legend.text=element_text(size=12,family="Helvetic
                    axis.text = element_text(family="Helvetica",size=12),
                    axis.title=element_text(family="Helvetica",size=12))
 
-ggsave(moveByDist,file="./revisions/Rev 1.3/Client_Movement_By_Distance.jpeg",units="in",height=5,width=7)
-
-
-
+ggsave(moveByDist,file="./figures/Client_Movement_By_Distance.jpeg",units="in",height=5,width=7)
 
 
 
@@ -449,71 +449,72 @@ maxInfect = table(datEval.Uni$CaseStatus_shrt)["Latent"]
 datEval.Uni$binClass <- as.character(mapvalues(datEval.Uni$CaseStatus_shrt,from=as.character(unique(datEval.Uni$CaseStatus_shrt)),to=c(0,NA,1)))
 
 
-totalInfectedPior<-c()
-for(i in 1:30){
-    totalChoices<-choose(31,i)
-    
-    #sometimes total choices is a huge number (> 1 million), when that happens, just try 10,000 combos
-    #the max is 31 chooose 15, which has a total 300,540,195 combinations..that would take a long time to run
-    
-    if(totalChoices > 10000){totalChoices = 10000}
-    
-    #storing the temporary results
-    tempResults <-  list(expo=list(OR=c(),pval=c()),
-                         distAvg=list(OR=c(),pval=c()),
-                         distMin=list(OR=c(),pval=c()),
-                         distexpRatio=list(OR=c(),pval=c()))
-    
-    for(trail in 1:totalChoices){
-      
-      idxLatent<-which(datEval.Uni$CaseStatus_shrt == "Latent")
-      
-      #notinfect implies that the latent cases had TB when they came to the shelter
-      #infected implies that the latent cases were infected by the index case
-      notinfected <- sample(idxLatent,size=i,replace=FALSE)
-      infected <- setdiff(idxLatent,notinfected)
-      
-      datEval.Uni$binClass[infected]<-1
-      datEval.Uni$binClass[notinfected]<-0
-      
-      
-      # ..... SUM OF DISTANCE EVALUATION
-      fit.glm<-tidy(glm(as.numeric(binClass)~ExpoDats,data = datEval.Uni,family = binomial(link="logit")))
-      tempResults$expo$OR  <-  c(tempResults$expo$OR,exp(fit.glm$estimate[2]))
-      tempResults$expo$pval  <-  c(tempResults$expo$pval,fit.glm$p.value[2])
-      
-      # ..... AVERAGE DISTANCE EVALUATION
-      fit.glm<-tidy(glm(as.numeric(CaseStatus_shrt != "Uninfected")~avgDist,data = datEval.Uni,family = binomial(link="logit")))
-      tempResults$distAvg$OR  <-  c(tempResults$distAvg$OR,exp(fit.glm$estimate[2]))
-      tempResults$distAvg$pval <-  c(tempResults$distAvg$pval,fit.glm$p.value[2])
-      
-      # ..... MINIMUM DISTANCE EVALUATION
-      fit.glm<-tidy(glm(as.numeric(CaseStatus_shrt != "Uninfected")~minDist,data = datEval.Uni,family = binomial(link="logit")))
-      tempResults$distMin$OR  <-  c(tempResults$distMin$OR,exp(fit.glm$estimate[2]))
-      tempResults$distMin$pval <-  c(tempResults$distMin$pval,fit.glm$p.value[2])
-      
-      
-      # ..... EXPOSURE DAYS / SUM RATIO EVALUATION
-      datEval.Uni$expRatio <-with(datEval.Uni,sumDist/ExpoDats)
-      fit.glm<-tidy(glm(as.numeric(CaseStatus_shrt != "Uninfected")~expRatio,data = datEval.Uni,family = binomial(link="logit")))
-      
-      tempResults$distexpRatio$OR  <-  c(tempResults$distexpRatio$OR ,exp(fit.glm$estimate[2]))
-      tempResults$distexpRatio$pval  <-  c(tempResults$distexpRatio$pval,fit.glm$p.value[2])
-      
-    }
-    
-    #now summarize the results for each
-    #first with with OR
-    ranges<-sapply(tempResults,function(x){
-      tmp  <-  summary(x[[1]])
-      list(OR = list(min=tmp[1],max=tmp[6],Median=tmp[3]),
-           pVal = list(totalSig=sum(x[[2]]<0.05),totalNotSig=sum(x[[2]]>0.05)))
-    })
-    
-    totalInfectedPior<-rbind(totalInfectedPior,cbind(rep(i,nrow(ranges)),rep(totalChoices,nrow(ranges)),ranges))
-}
+# Uncomment to run, but it takes a while, so I've included a pre-made r data object to move things along
+# totalInfectedPior<-c()
+# for(i in 1:30){
+#     totalChoices<-choose(31,i)
+#     
+#     #sometimes total choices is a huge number (> 1 million), when that happens, just try 10,000 combos
+#     #the max is 31 chooose 15, which has a total 300,540,195 combinations..that would take a long time to run
+#     
+#     if(totalChoices > 10000){totalChoices = 10000}
+#     
+#     #storing the temporary results
+#     tempResults <-  list(expo=list(OR=c(),pval=c()),
+#                          distAvg=list(OR=c(),pval=c()),
+#                          distMin=list(OR=c(),pval=c()),
+#                          distexpRatio=list(OR=c(),pval=c()))
+#     
+#     for(trail in 1:totalChoices){
+#       
+#       idxLatent<-which(datEval.Uni$CaseStatus_shrt == "Latent")
+#       
+#       #notinfect implies that the latent cases had TB when they came to the shelter
+#       #infected implies that the latent cases were infected by the index case
+#       notinfected <- sample(idxLatent,size=i,replace=FALSE)
+#       infected <- setdiff(idxLatent,notinfected)
+#       
+#       datEval.Uni$binClass[infected]<-1
+#       datEval.Uni$binClass[notinfected]<-0
+#       
+#       
+#       # ..... SUM OF DISTANCE EVALUATION
+#       fit.glm<-tidy(glm(as.numeric(binClass)~ExpoDats,data = datEval.Uni,family = binomial(link="logit")))
+#       tempResults$expo$OR  <-  c(tempResults$expo$OR,exp(fit.glm$estimate[2]))
+#       tempResults$expo$pval  <-  c(tempResults$expo$pval,fit.glm$p.value[2])
+#       
+#       # ..... AVERAGE DISTANCE EVALUATION
+#       fit.glm<-tidy(glm(as.numeric(CaseStatus_shrt != "Uninfected")~avgDist,data = datEval.Uni,family = binomial(link="logit")))
+#       tempResults$distAvg$OR  <-  c(tempResults$distAvg$OR,exp(fit.glm$estimate[2]))
+#       tempResults$distAvg$pval <-  c(tempResults$distAvg$pval,fit.glm$p.value[2])
+#       
+#       # ..... MINIMUM DISTANCE EVALUATION
+#       fit.glm<-tidy(glm(as.numeric(CaseStatus_shrt != "Uninfected")~minDist,data = datEval.Uni,family = binomial(link="logit")))
+#       tempResults$distMin$OR  <-  c(tempResults$distMin$OR,exp(fit.glm$estimate[2]))
+#       tempResults$distMin$pval <-  c(tempResults$distMin$pval,fit.glm$p.value[2])
+#       
+#       
+#       # ..... EXPOSURE DAYS / SUM RATIO EVALUATION
+#       datEval.Uni$expRatio <-with(datEval.Uni,sumDist/ExpoDats)
+#       fit.glm<-tidy(glm(as.numeric(CaseStatus_shrt != "Uninfected")~expRatio,data = datEval.Uni,family = binomial(link="logit")))
+#       
+#       tempResults$distexpRatio$OR  <-  c(tempResults$distexpRatio$OR ,exp(fit.glm$estimate[2]))
+#       tempResults$distexpRatio$pval  <-  c(tempResults$distexpRatio$pval,fit.glm$p.value[2])
+#       
+#     }
+#     
+#     #now summarize the results for each
+#     #first with with OR
+#     ranges<-sapply(tempResults,function(x){
+#       tmp  <-  summary(x[[1]])
+#       list(OR = list(min=tmp[1],max=tmp[6],Median=tmp[3]),
+#            pVal = list(totalSig=sum(x[[2]]<0.05),totalNotSig=sum(x[[2]]>0.05)))
+#     })
+#     
+#     totalInfectedPior<-rbind(totalInfectedPior,cbind(rep(i,nrow(ranges)),rep(totalChoices,nrow(ranges)),ranges))
+# }
 
-load(file="TotalInfected.Rda")
+load(file="./Data/TotalInfected.Rda")
 
 ##### first, summarize the p-value results
 pVal <- totalInfectedPior[which(rownames(totalInfectedPior) == "pVal"),]
@@ -548,7 +549,7 @@ ggplot(pVal,aes(x=as.numeric(as.character(totalPre)),y=perSig))+
         axis.text = element_text(family="Helvetica",size=12),
         axis.title=element_text(family="Helvetica",size=12),axis.text.x=element_text(angle=90,vjust=0.5))
 
-ggsave("./revisions/Rev 1.3//SensitivityAnalysis_pvalue.jpeg",unit="in",height=4,width=7,dpi=300)
+ggsave("./figures/SensitivityAnalysis_pvalue.jpeg",unit="in",height=4,width=7,dpi=300)
 
 ##### next, summarize the OR results
 OR <- totalInfectedPior[which(rownames(totalInfectedPior) == "OR"),]
@@ -590,7 +591,7 @@ ggplot(tmp,aes(x=totalPre,y=Median,group=totalPre))+
           axis.title=element_text(family="Helvetica",size=12),
           axis.text.x = element_text(angle=90,vjust=0.5))
 
-ggsave("revisions/Rev 1.3//SensitivityAnalysis_oddsRatio.jpeg",units="in",dpi=300,height=4,width=7)
+ggsave("./figures/SensitivityAnalysis_oddsRatio.jpeg",units="in",dpi=300,height=4,width=7)
 
 #################################################################
 #    Deriving and Evaluating cutoffs  for exisiting variables
@@ -610,6 +611,8 @@ getResults(fit.glm)
 
 #A binary response
 datEval.Uni$binResponse<-as.numeric(datEval.Uni$CaseStatus_shrt != "Uninfected")
+
+#this piece of code can also take a few minutes to run
 results<-bootOptimism(modelFrame=model.frame(CaseStatus_shrt~ExpoDats,data=datEval.Uni),binResponse=datEval.Uni$binResponse)
 
 write.csv(file="./tables/PerformanceEval_optimismPenalized.csv",results)
@@ -632,7 +635,7 @@ ggplot(data=datEval.Uni,aes(x=ExpoDats,y=sumDist/ExpoDats))+
                      axis.title=element_text(family="Helvetica",size=10))
   
 
-ggsave(file="./revisions/Rev 1.3/TotalDaysExposed_cumulativeDistance.jpeg",dpi=300,units="in",height=4, width=7)
+ggsave(file="./figures/TotalDaysExposed_cumulativeDistance.jpeg",dpi=300,units="in",height=4, width=7)
 
 
 

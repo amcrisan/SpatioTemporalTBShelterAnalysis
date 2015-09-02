@@ -1,0 +1,9 @@
+"","Outcome","Total","BothVisits","First only","Second only"
+"1","Active",8,2,3,3
+"2","Index case",1,1,0,0
+"3","Latent",31,13,7,11
+"4","PriorInfection",3,1,1,1
+"5","Uninfected",19,3,1,15
+"6","Unknown-noDB",81,0,51,30
+"7","Unknown-noScreen",18,2,1,15
+"8","Unknown-TSTnotRead",1,0,0,1
