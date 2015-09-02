@@ -341,7 +341,7 @@ moveByBed <- ggplot(data= dat,aes(x=DateOfVisit,y=Bed,group=KEY)) +
   xlab("Date of Visit")+
   theme(axis.text.x= element_text(angle = 90),axis.text=element_text(size=14),axis.title=element_text(face="bold",size=16))+
   ggtitle("Client movement according to bed number and TB status and over time")
-  #theme(axis.text.x = element_blank())
+  #theme(legend.text=element_text(size=14))
 ggsave(moveByBed,file="./figures/Client_Movement_By_BedNum.jpeg",units="cm",height=14,width=26.5,dpi=300)
 
 
@@ -390,7 +390,7 @@ moveByDist <-ggplot(data= datEval,aes(x=DateOfVisit,y=distFromIndex,group=KEY)) 
   ylab("")+
   xlab("")+
   theme(axis.text.y = element_blank(),
-        legend.text=element_text(size=12),
+        legend.text=element_text(size=14),
         legend.title=element_text(size=14,face="plain"),
         axis.text.x = element_text(face="bold",size=14,colour = c(rep("black",7),rep("azure4",5))),
         axis.ticks.y=element_blank(),panel.border=element_rect(fill=NA,colour=NA))+
